@@ -1,0 +1,187 @@
+.TH ER 1 "OCTOBER 2022" "er v0.1.0" "User Commands"
+.SH NAME
+er \- terminal-based text editor
+.SH SYNOPSIS
+.B er
+.I file
+.SH DESCRIPTION
+.B er
+is a very minimal text editor.
+It is not
+.BR vi(1)
+or
+.BR emacs(1).
+There's no runtime configuration.
+You probably shouldn't use it.
+.PP
+.B er
+requires a filename
+.I 'file'
+to begin editing;
+if this does not correspond to an existing file,
+it will be created. Only a single file can be edited
+at a time.
+.B er
+implicitly assumes UTF-8 encoding for all I/O.
+.PP
+If
+.B er
+encounters an unrecoverable error it will attempt to
+save the current buffer to
+.I 'er.out'
+before exiting.
+.SS Modes
+.B er
+is a modal editor with 2.5 modes: COMMAND, INPUT and SELECT.
+.RS
+.IP *
+In COMMAND mode, input is interpreted as commands to control
+the editor.
+.IP *
+In INPUT mode, character are inserted into
+the text at the position of the cursor. In both COMMAND
+and INPUT modes, the cursor addresses a single character
+position in the text buffer.
+.IP *
+SELECT mode is effectively the
+same as COMMAND mode, except that commands are performed on
+a selection which can span multiple characters.
+.RE
+.SS Undo
+Changes to the text buffer are recorded and can be undone.
+Changes to cursor addressing are not recorded.
+.SS Copy/Paste
+There is a single 'yank' buffer into which selected text
+can be copied, and from which it can be pasted back into
+the buffer.
+.SH COMMANDS
+.SS Motions
+In COMMAND and INPUT modes, any motions apply to the
+single cursor address. In SELECT mode, motions apply
+to the higher address of the selection. In the below
+list, keys within square brackets are only
+interpreted as motions in COMMAND and SELECT modes.
+.RS
+.IP "Arrow keys, [h, j, k, l]"
+move cursor within text buffer to different character
+positions.
+.IP "CTRL+a, HOME, [0]"
+Move cursor to start of line.
+.IP "CTRL+e, END, [$]"
+Move cursor to end of line.
+.IP "CTRL+b, PAGEUP"
+Move cursor backward by one screen's worth of text.
+.IP "CTRL+f, PAGEDOWN"
+Move cursor forward by one screen's worth of text.
+.RE
+.SS "COMMAND and SELECT modes"
+.RS
+.IP ESCAPE
+Return to COMMAND mode.
+.IP "i, INSERT"
+Enter INPUT mode at cursor position.
+.IP a
+Enter INPUT mode after cursor position.
+.IP o
+Create new line after current cursor position,
+and enter INPUT mode.
+.IP O
+Create new line before current cursor position,
+and enter INPUT mode.
+.IP v
+Enter SELECT mode.
+.IP V
+Enter SELECT mode and extend selection to entire
+line.
+.IP d
+Cut (yank and delete) selected text.
+.IP x
+Delete selected text.
+.IP r
+Replace character at cursor position. In SELECT
+mode this applies to the final character in the
+selection.
+.IP y
+Copy (yank) the selected text.
+.IP p
+Paste text after the current cursor position.
+.IP P
+Paste text before the current cursor position.
+.IP u
+Undo last textual change.
+.IP <
+Outdent the line(s) in the current selection by up to 4 spaces.
+.IP >
+Indent the line(s) in the current selection by 4 spaces.
+.IP g
+Move cursor to first character in the buffer.
+.IP G
+Move cursor to last character in the buffer.
+.IP "CTRL+G"
+Print information about the current cursor position.
+.IP s
+Search for the given (extended) regular expression.
+Input of the regular expression is at the bottom of the
+screen, where it is only possible to append characters
+(or start from scratch using BACKSPACE).
+.IP W
+Overwrite the file with the contents of the buffer.
+.IP Q
+Attempt to quit the editor. This command will complain if
+there are unsaved modifications to the buffer.
+.IP Z
+Quit the editor. This command will exit even if there
+are unsaved modifications.
+.RE
+.SS "INPUT mode"
+The majority of characters inputted in INPUT mode
+will be inserted into the text at the cursor position.
+The following keys result in other behaviour:
+.RS
+.IP BACKSPACE
+Delete the character before the cursor position.
+.IP DELETE
+Delete the character at the cursor position.
+.IP ESCAPE
+Enter COMMAND mode.
+.IP TAB
+Tab inserts 4 spaces at the cursor position.
+.RE
+.SH BUGS
+It's very possible that
+.B er
+will not function properly in your given terminal [emulator],
+as it assumes a basic set of VT-style escape sequences.
+.PP
+Bugs can be reported at
+<https://github.com/lewis-weinberger/er/issues>.
+As
+.B er
+is intended to be a minimal editor, feature requests
+will be ignored.
+.SH SEE ALSO
+.BR vi(1),
+.BR emacs(1),
+.BR nano(1)
+.SH AUTHOR
+Lewis Weinberger <https://github.com/lewis-weinberger>
+.SH COPYING
+Copyright (c) 2022 Lewis Weinberger
+.PP
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+.PP
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+.PP
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
