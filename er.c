@@ -214,16 +214,11 @@ int sol(size_t *i) {
 
 void nextline(size_t *i) {
     size_t m = *i, n;
-    if (buf[bufaddr(*i)] == '\n')
-        n = 0;
-    else {
-        n = sol(&m);
-        if (*i == 0)
-            n = 0;
-        else if (m > 0)
-            n -=1;
+    n = sol(&m);
+    if (m > 0)
+        n--;
+    if (buf[bufaddr(*i)] != '\n')
         eol(i);
-    }
     if (*i < cap - gap - 1) {
         next(i);
         while (n && buf[bufaddr(*i)] != '\n' && *i < cap - gap - 1) {
@@ -818,7 +813,8 @@ void command(int k) {
         sol(&addr1);
         if (addr1 > 0 && addr1 < cap - gap - 1)
             next(&addr1);
-        eol(&addr2);
+        if (buf[bufaddr(addr2)] != '\n')
+            eol(&addr2);
         MODE(SELECT);
         break;
     case 'd':
