@@ -355,6 +355,20 @@ void indent(size_t *a, size_t *b, int fwd) {
     record(UEND, 0, 0);
 }
 
+void newline(size_t *a, int O) {
+    size_t b = *a;
+    if (O && *a == 0) {
+        insert(0, '\n', 1);
+        return;
+    }
+    insert((*a)++, '\n', 1);
+    sol(&b);
+    if (buf[bufaddr(b)] == '\n' && b < cap - gap)
+        next(&b);
+    while (buf[bufaddr(b++)] == ' ' && b < cap - gap)
+        insert((*a)++, ' ', 1);
+}
+
 void fileinit(void) {
     struct stat st;
     size_t n;
@@ -782,20 +796,19 @@ void command(int k) {
     case 'o':
         if (buf[bufaddr(addr2)] != '\n')
             eol(&addr2);
-        insert(addr2, '\n', 1);
+        newline(&addr2, 0);
         record(UEND, 0, 0);
-        next(&addr2);
         addr1 = addr2;
+        checkline(1);
         MODE(INPUT);
         break;
     case 'O':
         if (buf[bufaddr(addr1)] != '\n')
             sol(&addr1);
-        insert(addr1, '\n', 1);
+        newline(&addr1, 1);
         record(UEND, 0, 0);
-        if (addr1 > 0)
-            next(&addr1);
         addr2 = addr1;
+        checkline(0);
         MODE(INPUT);
         break;
     case 'v':
@@ -949,7 +962,7 @@ void input(int k) {
         addr1 = addr2;
         break;
     case '\n':
-        insert(addr2++, '\n', 1);
+        newline(&addr2, 0);
         record(UEND, 0, 0);
         addr1 = addr2;
         break;
