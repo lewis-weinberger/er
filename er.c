@@ -33,8 +33,8 @@ typedef struct {
 } change;
 
 size_t                addr1, addr2;
-char                  *buf, ch[5], *name, vbuf[VBUFMAX], *ybuf;
-size_t                cap, gap, start, dirty;
+char                  *buf, ch[5], *name, vbuf[VBUFMAX], *ybuf, *bbuf;
+size_t                cap, gap, start, dirty, vstart, vline;
 struct winsize        dim;
 jmp_buf               env;
 char                  invalid[] = { '\xef', '\xbf', '\xbd', '\0', '\0' };
@@ -42,7 +42,7 @@ int                   mode = COMMAND;
 sigset_t              oset;
 int                   refresh, quit;
 change                *ubuf;
-size_t                ubuflen, ubufcap, vbuflen, vstart, vline, ybuflen, ybufcap;
+size_t                ubuflen, ubufcap, vbuflen, ybuflen, ybufcap, bbufcap;
 volatile sig_atomic_t status;
 struct termios        term;
 
@@ -448,15 +448,17 @@ void terminit(void) {
 
 void init(void) {
     sigpend();
-    ubufcap = ybufcap = GAPLEN;
+    ubufcap = ybufcap = bbufcap = GAPLEN;
     ubuflen = ybuflen = 0;
     if ((ubuf = malloc(ubufcap * sizeof(change)))) {
         if ((ybuf = malloc(ybufcap * sizeof(char)))) {
-            setlocale(LC_ALL, "");
-            fileinit();
-            terminit();
-            siginit();
-            return;
+            if ((bbuf = malloc(bbufcap * sizeof(char)))) {
+                setlocale(LC_ALL, "");
+                fileinit();
+                terminit();
+                siginit();
+                return;
+            }
         }
     }
     perror("init");
@@ -473,6 +475,7 @@ void end(void) {
     free(buf);
     free(ybuf);
     free(ubuf);
+    free(bbuf);
 }
 
 void undo(size_t *a, size_t *b) {
@@ -534,36 +537,48 @@ void vflush(void) {
      vbuflen = 0;
 }
 
-void vpush(const char *s) {
-    while (*s) {
-        if (vbuflen == VBUFMAX)
-            vflush();
-        vbuf[vbuflen++] = *s++;
+void vpush(int n, ...) {
+    va_list args;
+    va_start(args, n);
+    for (int i = 0; i < n; i++) {
+        char *s = va_arg(args, char*);
+        while (*s) {
+            if (vbuflen == VBUFMAX)
+                vflush();
+            vbuf[vbuflen++] = *s++;
+        }
     }
+    va_end(args);
 }
 
 void cursor(unsigned int x, unsigned int y) {
     char tmp[32];
     if (snprintf(tmp, sizeof(tmp), CSI("%u;%uH"), y + 1 , x + 1) < 0)
         err(PANIC);
-    vpush(tmp);
+    vpush(1, tmp);
 }
 
 void bar(const char *fmt, ...) {
-    char *tmp;
+    char *new;
+    int n;
     va_list args;
-    if (!(tmp = malloc((dim.ws_col + 1) * sizeof(char))))
-        err(PANIC);
+    if (bbufcap < (size_t)dim.ws_col + 1) {
+        if (!(new = realloc(bbuf, (dim.ws_col + 1) * sizeof(char))))
+            err(PANIC);
+        bbuf = new;
+        bbufcap = dim.ws_col + 1;
+    }
     va_start(args, fmt);
-    vsnprintf(tmp, dim.ws_col + 1, fmt, args);
+    n = vsnprintf(bbuf, dim.ws_col + 1, fmt, args);
     va_end(args);
     cursor(0, dim.ws_row - 1);
-    vpush(CSI("36m"));
-    vpush(tmp);
-    vpush(CSI("K"));
-    vpush(CSI("0m"));
+    vpush(2, CSI("36m"), bbuf);
+    if (n > dim.ws_col) {
+        cursor(dim.ws_col - 2, dim.ws_row - 1);
+        vpush(2, CSI("35m>"), CSI("0m"));
+    }
+    vpush(2, CSI("K"), CSI("0m"));
     vflush();
-    free(tmp);
 }
 
 void search(size_t *a, size_t *b) {
@@ -614,28 +629,26 @@ void display(void) {
         cursor(j, i);
         if (k < cap - gap) {
             snprintf(tmp, sizeof(tmp), CSI("34m %*ld "), l, vline + i);
-            vpush(tmp);
-            vpush(CSI("0m"));
+            vpush(2, tmp, CSI("0m"));
             j += l + 2;
             if (addr1 != addr2 && k >= addr1 && k <= addr2)
-                vpush(CSI("7m"));
+                vpush(1, CSI("7m"));
             do {
                 if (addr1 != addr2 && k == addr1)
-                    vpush(CSI("7m"));
+                    vpush(1, CSI("7m"));
                 if (k == addr2) {
-                    vpush(CSI("0m"));
+                    vpush(1, CSI("0m"));
                     j2 = j;
                     i2 = i;
                 }
                 j += next(&k);
                 if (j < dim.ws_col)
-                    vpush(ch[0] == '\n' ? " " : ch);
+                    vpush(1, ch[0] == '\n' ? " " : ch);
                 if (ch[0] == '\n')
                     break;
                 else if (j == dim.ws_col) {
                     cursor(0, i);
-                    vpush(CSI("35m>"));
-                    vpush(CSI("0m"));
+                    vpush(2, CSI("35m>"), CSI("0m"));
                     cursor(j, i);
                 }
             } while (k < cap - gap);
@@ -649,12 +662,11 @@ void display(void) {
                 }
             }
         } else {
-            vpush(CSI("90m~"));
-            vpush(CSI("0m"));
+            vpush(2, CSI("90m~"), CSI("0m"));
         }
-        vpush(CSI("K"));
+        vpush(1, CSI("K"));
     }
-    vpush(CSI("?25h"));
+    vpush(1, CSI("?25h"));
     cursor(j2, i2);
     vflush();
 }
