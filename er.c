@@ -1002,7 +1002,7 @@ void run(void) {
 
 int main(int argc, char **argv) {
     if (argc != 2) {
-        fprintf(stderr, "er (%d.%d.%d)\nUsage:\n\ter file\n", 0, 1, 0);
+        fprintf(stderr, "er (0.2.0)\nUsage:\n\ter file\n");
         exit(1);
     }
     name = argv[1];
