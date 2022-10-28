@@ -65,9 +65,9 @@ int dims(void) {
     return 0;
 }
 
-int readbyte() {
+int readbyte(void) {
     int n;
-    char c;
+    unsigned char c;
     if ((n = read(STDIN_FILENO, &c, 1)) == -1) {
         if (errno == EINTR)
             n = 0;
@@ -79,15 +79,14 @@ int readbyte() {
     return c;
 }
 
-int decode(char first, int (*more)(size_t*), size_t *i, wchar_t *wc) {
+int decode(char first, int (*m1)(size_t*), int (*m2)(void), size_t *i, wchar_t *wc) {
     int n, r;
     mbstate_t ps;
-    memset(ch, 0, 5);
     for (n = 1, ch[0] = first; n < 5; n++) {
         memset(&ps, 0, sizeof(ps));
         switch (mbrtowc(wc, ch, n, &ps)) {
         case (size_t)-2:
-            if ((r = more(i)) == -1)
+            if ((r = (m1 != NULL) ? m1(i) : m2()) == -1)
                 return -1;
             ch[n] = r;
             break;
@@ -101,7 +100,7 @@ int decode(char first, int (*more)(size_t*), size_t *i, wchar_t *wc) {
 }
 
 int parsechar(char c) {
-    if (decode(c, readbyte, NULL, NULL) == -1)
+    if (decode(c, NULL, readbyte, NULL, NULL) == -1)
         err(RESET);
     return c;
 }
@@ -137,10 +136,9 @@ int key(void) {
         { 'O', 'H',  -1,     HOME },
         { 'O', 'F',  -1,      END }
     };
-    if ((k = readbyte()) == -1) {
-        memset(ch, 0, 5);
+    memset(ch, 0, 5);
+    if ((k = readbyte()) == -1)
         return NONE;
-    }
     if (k == 0x1b) {
         if ((l = readbyte()) != -1 && (m = readbyte()) != -1) {
             for (size_t i = 0; i < LEN(vt); i++) {
@@ -169,7 +167,8 @@ int nextbuf(size_t *i) {
 
 int next(size_t *i) {
     wchar_t wc;
-    if (decode(buf[bufaddr((*i)++)], nextbuf, i, &wc) == -1) {
+    memset(ch, 0, 5);
+    if (decode(buf[bufaddr((*i)++)], nextbuf, NULL, i, &wc) == -1) {
         memcpy(ch, invalid, 5);
         return 1;
     }
@@ -978,7 +977,6 @@ void input(int k) {
         s = ch;
         while(*s)
             insert(addr2++, *s++, 1);
-        memset(ch, 0, 5);
         record(UEND, 0, 0);
         addr1 = addr2;
         checkline(1);
@@ -987,7 +985,6 @@ void input(int k) {
 }
 
 void run(void) {
-    int k;
     if (dims() == -1)
         err(PANIC);
     while (!quit) {
@@ -995,7 +992,7 @@ void run(void) {
             display();
             refresh = 0;
         }
-        k = key();
+        int k = key();
         (mode == INPUT) ? input(k) : command(k);
     }
 }
