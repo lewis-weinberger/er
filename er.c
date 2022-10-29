@@ -172,6 +172,8 @@ int next(size_t *i) {
         memcpy(ch, invalid, 5);
         return 1;
     }
+    if (wc == '\t')
+        return TABSPACE;
     return wcwidth(wc);
 }
 
@@ -619,7 +621,7 @@ void search(size_t *a, size_t *b) {
 }
 
 void display(void) {
-    int i, j, l, i2, j2;
+    int i, j, l, i2, j2, n;
     size_t k;
     char tmp[32];
     l = digits(vline + dim.ws_row);
@@ -641,8 +643,13 @@ void display(void) {
                     i2 = i;
                 }
                 j += next(&k);
-                if (j < dim.ws_col)
-                    vpush(1, ch[0] == '\n' ? " " : ch);
+                if (j < dim.ws_col) {
+                    if (ch[0] == '\t') {
+                        for (n = 0; n < TABSPACE; n++)
+                            vpush(1, " ");
+                    } else
+                        vpush(1, (ch[0] == '\n') ? " " : ch);
+                }
                 if (ch[0] == '\n')
                     break;
                 else if (j == dim.ws_col) {
