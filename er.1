@@ -1,25 +1,24 @@
-.TH ER 1 "OCTOBER 2022" "er v0.2.0" "User Commands"
+.TH ER 1 "NOVEMBER 2022" "er v0.3.0" "User Commands"
 .SH NAME
 er \- terminal-based text editor
 .SH SYNOPSIS
 .B er
-.I file
+.I file...
 .SH DESCRIPTION
 .B er
 is a very minimal text editor.
 It is not
 .BR vi(1)
 or
-.BR emacs(1).
-There's no runtime configuration.
+.BR emacs(1)
+or
+.BR acme(1).
 You probably shouldn't use it.
 .PP
 .B er
-requires a filename
-.I 'file'
-to begin editing;
-if this does not correspond to an existing file,
-it will be created. Only a single file can be edited
+requires filename(s) to be specified on the command-line;
+If a path does not correspond to an existing file,
+it will be created. Only 32 files can be edited
 at a time.
 .B er
 implicitly assumes UTF-8 encoding for all I/O.
@@ -27,7 +26,7 @@ implicitly assumes UTF-8 encoding for all I/O.
 If
 .B er
 encounters an unrecoverable error it will attempt to
-save the current buffer to
+save the current buffer(s) to
 .I 'er.out'
 before exiting.
 .SS Modes
@@ -78,6 +77,14 @@ Move cursor forward by one screen's worth of text.
 .RS
 .IP ESCAPE
 Return to COMMAND mode.
+.IP b
+List the open buffers.
+.IP n
+Switch to the next buffer.
+.IP N
+Switch to the previous buffer.
+.IP f
+Open the given file in a new buffer.
 .IP "i, INSERT"
 Enter INPUT mode at cursor position.
 .IP a
@@ -119,6 +126,8 @@ Move cursor to first character in the buffer.
 Move cursor to last character in the buffer.
 .IP "CTRL+G"
 Print information about the current cursor position.
+.IP t
+Toggle using tabs (\\t) or 4 spaces for indentation.
 .IP s
 Search for the given (extended) regular expression.
 Input of the regular expression is at the bottom of the
@@ -126,9 +135,14 @@ screen, where it is only possible to append characters
 (or start from scratch using BACKSPACE).
 .IP W
 Overwrite the file with the contents of the buffer.
+.IP q
+Attempt to close the buffer. This command will complain if
+there are unsaved modifications to the buffer. It will exit
+.B er
+if it is the final buffer.
 .IP Q
 Attempt to quit the editor. This command will complain if
-there are unsaved modifications to the buffer.
+there are unsaved modifications to the buffer(s).
 .IP Z
 Quit the editor. This command will exit even if there
 are unsaved modifications.
@@ -145,7 +159,7 @@ Delete the character at the cursor position.
 .IP ESCAPE
 Enter COMMAND mode.
 .IP TAB
-Tab inserts 4 spaces at the cursor position.
+Tab inserts either 4 spaces or a \\t at the cursor position.
 .RE
 .SH BUGS
 It's very possible that

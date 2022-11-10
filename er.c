@@ -56,7 +56,7 @@ char                  ch[5], vbuf[VBUFMAX];
 size_t                vbuflen, current, nbuf;
 struct winsize        dim;
 jmp_buf               env;
-const char            invalid[] = { '\xef', '\xbf', '\xbd', '\0', '\0' };
+const char            invalid[] = "�";
 short                 mode = COMMAND, refresh, quit, usetabs, tabspace;
 sigset_t              oset;
 volatile sig_atomic_t status;
@@ -189,7 +189,7 @@ int next(size_t *i) {
     wchar_t wc;
     memset(ch, 0, 5);
     if (decode(buf->c[bufaddr((*i)++)], nextbuf, NULL, i, &wc) == -1) {
-        memcpy(ch, invalid, 5);
+        memcpy(ch, invalid, sizeof(invalid));
         return 1;
     }
     if (wc == '\t')
@@ -1150,7 +1150,7 @@ void run(void) {
 
 int main(int argc, char **argv) {
     if (argc < 2) {
-        fprintf(stderr, "er (0.2.0)\nUsage:\n\ter file...\n");
+        fprintf(stderr, "er (0.3.0)\nUsage:\n\ter file...\n");
         exit(1);
     }
     nbuf = argc - 1;
@@ -1158,6 +1158,7 @@ int main(int argc, char **argv) {
          init(nbuf, argv);
     buf = &bufs[current];
     refresh = 1;
+    usetabs = tabspace = 1;
     (status != PANIC) ? run() : save();
     end();
     if (status == PANIC)
