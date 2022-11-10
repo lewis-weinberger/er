@@ -20,7 +20,7 @@
 #define LEN(X)    (sizeof(X) / sizeof(X[0]))
 #define MODE(X)   mode = X; bar(#X)
 
-enum { TABSPACE=4, GAPLEN=256, VBUFMAX=4096 };
+enum { GAPLEN=256, VBUFMAX=4096 };
 enum { OK, PANIC, RESET };
 enum { NONE=-14, BACKSPACE, DELETE, LEFT, RIGHT, UP, DOWN,
        HOME, END, PAGEUP, PAGEDOWN, INSERT, ESCAPE };
@@ -57,7 +57,7 @@ size_t                vbuflen, current, nbuf;
 struct winsize        dim;
 jmp_buf               env;
 const char            invalid[] = { '\xef', '\xbf', '\xbd', '\0', '\0' };
-int                   mode = COMMAND, refresh, quit;
+short                 mode = COMMAND, refresh, quit, usetabs, tabspace;
 sigset_t              oset;
 volatile sig_atomic_t status;
 struct termios        term;
@@ -193,7 +193,7 @@ int next(size_t *i) {
         return 1;
     }
     if (wc == '\t')
-        return TABSPACE;
+        return 8;
     return wcwidth(wc);
 }
 
@@ -376,15 +376,16 @@ void indent(size_t *a, size_t *b, int fwd) {
             next(&i);
     }
     while (i <= *b && i < len() - 1) {
-        int k = TABSPACE;
+        int k = tabspace;
         while (k-- > 0) {
             if (fwd) {
                 if (i <= *a)
                     (*a)++;
-                insert(i, ' ', 1);
+                insert(i, usetabs ? '\t' : ' ', 1);
                 (*b)++;
             } else {
-                if (len() > 0 && i < len() && buf->c[bufaddr(i)] == ' ') {
+                if (len() > 0 && i < len() &&
+                    buf->c[bufaddr(i)] == (usetabs ? '\t' : ' ')) {
                     delete(i, 1);
                     if (i <= *a)
                         (*a)--;
@@ -744,7 +745,7 @@ void display(void) {
                 j += next(&k);
                 if (j < dim.ws_col) {
                     if (ch[0] == '\t') {
-                        for (n = 0; n < TABSPACE; n++)
+                        for (n = 0; n < 8; n++)
                             vpush(1, " ");
                     } else
                         vpush(1, (ch[0] == '\n') ? " " : ch);
@@ -1029,6 +1030,11 @@ void command(int k) {
             buf->vline + fd, r, buf->addr1, len(),
             (len() > 0) ? 100.0 * (buf->addr1 + 1) / len() : 0);
         break;
+    case 't':
+        usetabs = 1 - usetabs;
+        tabspace = usetabs ? 1 : 4;
+        bar(usetabs ? "Using tabs (\\t)" : "Using %d spaces", tabspace);
+        break;
     case 's':
         search(&buf->addr1, &buf->addr2);
         checkline(1);
@@ -1107,9 +1113,9 @@ void input(int k) {
         MODE(COMMAND);
         break;
     case '\t':
-        k = TABSPACE;
+        k = tabspace;
         while (k-- > 0)
-            insert(buf->addr2++, ' ', 1);
+            insert(buf->addr2++, usetabs ? '\t' : ' ', 1);
         record(UEND, 0, 0);
         buf->addr1 = buf->addr2;
         break;
