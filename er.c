@@ -952,28 +952,52 @@ dialogue(const char *prompt)
 
 /* search for regular expression in current buffer */
 void
-search(size_t *a, size_t *b)
+search(size_t *a, size_t *b, int replace, int all)
 {
 	regex_t reg;
 	regmatch_t m[1];
-	char err[128];
+	char err[128], *s;
 	int r;
+	size_t n, k;
 
-	if(dialogue("Search: ") == -1)
+	if(dialogue(replace ?
+	            (all? "Replace all: " : "Replace:") : "Search: ") == -1)
 		return;
-	move(len());
 	r = regcomp(&reg, dbuf.data, REG_EXTENDED | REG_NEWLINE);
+	k = 0;
 	if(r == 0){
-		r = regexec(&reg, buf->c + *b, 1, m, 0);
-		if(r == 0 && *b + m[0].rm_so < len()){
-			*a = *b + m[0].rm_so;
-			*b += m[0].rm_eo - 1;
+		if(replace && dialogue("with: ") == -1){
+			regfree(&reg);
+			return;
 		}
+		do{
+			move(len()); /* please mind the gap */
+			r = regexec(&reg, buf->c + *b, 1, m, 0);
+			if(r == 0 && *b + m[0].rm_so < len()){
+				*a = *b + m[0].rm_so;
+				*b += m[0].rm_eo - 1;
+				if(replace){
+					n = 1 + *b - *a;
+					while(n-- > 0)
+						delete(*a, 1);
+					*b = *a;
+					s = dbuf.data;
+					while(*s)
+						insert((*b)++, *s++, 1);
+					k++;
+					record(Uend, 0, 0);
+				}
+			}
+		}while(all && r == 0);
 	}
 	bar("");
 	if(r != 0){
-		regerror(r, &reg, err, sizeof(err));
-		bar(err);
+		if(k > 0)
+			bar("Replaced %ld matches", k);
+		else{
+			regerror(r, &reg, err, sizeof(err));
+			bar(err);
+		}
 	}
 	regfree(&reg);
 	return;
@@ -1323,7 +1347,15 @@ command(int k)
 		bar(autoindent ? "Autoindent on" : "Autoindent off");
 		break;
 	case 's':
-		search(&buf->addr1, &buf->addr2);
+		search(&buf->addr1, &buf->addr2, 0, 0);
+		checkline(1);
+		break;
+	case 'm':
+		search(&buf->addr1, &buf->addr2, 1, 0);
+		checkline(1);
+		break;
+	case 'M':
+		search(&buf->addr1, &buf->addr2, 1, 1);
 		checkline(1);
 		break;
 	case 'W':

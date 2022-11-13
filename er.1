@@ -74,6 +74,8 @@ Move cursor backward by one screen's worth of text.
 Move cursor forward by one screen's worth of text.
 .RE
 .SS "COMMAND and SELECT modes"
+Almost all commands are immediately executed, however
+some may prompt for input (e.g. to enter a new file name).
 .RS
 .IP ESCAPE
 Return to COMMAND mode.
@@ -132,9 +134,12 @@ Toggle using tabs (\\t) or 4 spaces for indentation.
 Toggle automatic indentation.
 .IP s
 Search for the given (extended) regular expression.
-Input of the regular expression is at the bottom of the
-screen, where it is only possible to append characters
-(or start from scratch using BACKSPACE).
+.IP m
+Search for the given (extended) regular expression and
+replace with the given text.
+.IP M
+Search for all instances of the given (extended) regular
+expression and replace all with the given text.
 .IP W
 Overwrite the file with the contents of the buffer.
 .IP q
