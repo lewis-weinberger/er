@@ -19,19 +19,22 @@
 #define CSI(ch) ("\x1b[" ch)
 #define LEN(X)  (sizeof(X) / sizeof(X[0]))
 
+/* misc constants */
 enum
 {
-	Gaplen  = 256,
-	Vbufmax = 4096
+	Gaplen  = 256, /* number of bytes in a full gap */
+	Vbufmax = 4096 /* number of bytes in screen buffer */
 };
 
+/* error handling status */
 enum
 {
 	Ok,
-	Panic,
-	Reset
+	Panic, /* Unrecoverable errors */
+	Reset  /* Recoverable errors */
 };
 
+/* keyboard keys */
 enum
 {
 	Kesc = 0x1b,
@@ -48,6 +51,7 @@ enum
 	Kins
 };
 
+/* editing mode */
 enum
 {
 	Command,
@@ -55,46 +59,51 @@ enum
 	Select
 };
 
+/* dynamic array operation type */
 enum
 {
 	Char,
 	Chnge
 };
 
+/* undo stack type */
 enum
 {
 	Udelete,
 	Uinsert,
-	Uend
+	Uend     /* sentinel for sequence of changes */
 };
 
 typedef struct Change Change;
 typedef struct Array Array;
 typedef struct Buffer Buffer;
 
+/* textual change */
 struct Change
 {
-	short  type;
-	size_t i;
-	char   c;
+	short  type; /* undo stack type */
+	size_t i;    /* byte offset of change */
+	char   c;    /* value of change */
 };
 
+/* dynamic array */
 struct Array
 {
-	void   *data;
-	size_t len;
-	size_t cap;
+	void   *data; /* contents */
+	size_t len;   /* length */
+	size_t cap;   /* capacity */
 };
 
+/* editing buffer */
 struct Buffer
 {
-	char   *c;
-	char   path[PATH_MAX];
-	Array  changes;
-	int    dirty;
-	size_t addr1, addr2;
-	size_t cap, gap, start;
-	size_t vstart, vline;
+	char   *c;              /* contents */
+	char   path[PATH_MAX];  /* filename */
+	Array  changes;         /* undo stack */
+	short  dirty;           /* modified flag */
+	size_t addr1, addr2;    /* selection offsets */
+	size_t cap, gap, start; /* gap book-keeping */
+	size_t vstart, vline;   /* display book-keeping */
 };
 
 Buffer                bufs[32], *buf;
@@ -104,17 +113,19 @@ size_t                vbuflen, current, nbuf;
 struct winsize        dim;
 jmp_buf               env;
 const char            invalid[] = "�";
-short                 mode, refresh, quit, usetabs, tabspace;
+short                 mode, refresh, quit, usetabs, tabspace, autoindent;
 sigset_t              oset;
 volatile sig_atomic_t status;
 struct termios        term;
 
+/* convert logical byte offset to internal byte offset */
 size_t
 bufaddr(size_t in)
 {
 	return (in >= buf->start) ? in + buf->gap : in;
 }
 
+/* throw error */
 void
 err(int n)
 {
@@ -122,12 +133,14 @@ err(int n)
 	siglongjmp(env, 1);
 }
 
+/* number of decimal digits */
 int
 digits(long v)
 {
 	return (v == 0) ? 1 : floor(log10((double)v)) + 1;
 }
 
+/* get current terminal dimensions */
 int
 dims(void)
 {
@@ -136,6 +149,7 @@ dims(void)
 	return 0;
 }
 
+/* read a byte from STDIN (see terminit() for timeout) */
 int
 readbyte(void)
 {
@@ -153,6 +167,7 @@ readbyte(void)
 	return c;
 }
 
+/* read a byte stream until a complete multibyte character is found */
 int
 decode(char first, int (*m1)(size_t*), int (*m2)(void), size_t *i, wchar_t *wc)
 {
@@ -176,6 +191,7 @@ decode(char first, int (*m1)(size_t*), int (*m2)(void), size_t *i, wchar_t *wc)
 	return -1;
 }
 
+/* read a character from STDIN */
 int
 parsechar(char c)
 {
@@ -184,6 +200,7 @@ parsechar(char c)
 	return c;
 }
 
+/* get user input from keyboard */
 int
 key(void)
 {
@@ -245,18 +262,21 @@ key(void)
 	return parsechar(k);
 }
 
+/* length of current buffer */
 size_t
 len(void)
 {
 	return buf->cap - buf->gap;
 }
 
+/* next byte in the current buffer */
 int
 nextbuf(size_t *i)
 {
 	return (*i == len()) ? -1 : buf->c[bufaddr((*i)++)];
 }
 
+/* next character in the current buffer */
 int
 next(size_t *i)
 {
@@ -272,6 +292,7 @@ next(size_t *i)
 	return wcwidth(wc);
 }
 
+/* end of line in current buffer */
 int
 eol(size_t *i)
 {
@@ -287,6 +308,7 @@ eol(size_t *i)
 	return r;
 }
 
+/* previous character in current buffer */
 int
 prev(size_t *i)
 {
@@ -305,6 +327,7 @@ prev(size_t *i)
 	return r;
 }
 
+/* start of line in current buffer */
 int
 sol(size_t *i)
 {
@@ -320,6 +343,7 @@ sol(size_t *i)
 	return r;
 }
 
+/* next line in current buffer */
 void
 nextline(size_t *i)
 {
@@ -340,6 +364,7 @@ nextline(size_t *i)
 	}
 }
 
+/* previous line in current buffer */
 void
 prevline(size_t *i)
 {
@@ -359,6 +384,7 @@ prevline(size_t *i)
 	}
 }
 
+/* check if displayed subset of current buffer needs to be updated */
 int
 checkline(int dir)
 {
@@ -387,6 +413,7 @@ checkline(int dir)
 	return r;
 }
 
+/* reposition current buffer's gap ready for insertion/deletion */
 void
 move(size_t i)
 {
@@ -402,6 +429,7 @@ move(size_t i)
 	}
 }
 
+/* expand allocated memory for dynamic array */
 void
 resize(Array *a, short type)
 {
@@ -426,6 +454,7 @@ resize(Array *a, short type)
 	a->cap *= 2;
 }
 
+/* append new item to the end of dynamic array */
 void
 append(Array *a, short type, ...)
 {
@@ -445,11 +474,13 @@ append(Array *a, short type, ...)
 	va_end(args);
 }
 
+/* append new textual change to the current buffer's undo stack */
 void
 record(short t, size_t i, char c) {
 	append(&buf->changes, Chnge, (Change){ t, i, c });
 }
 
+/* reallocate memory for current buffer's gap */
 void
 grow(void)
 {
@@ -464,6 +495,7 @@ grow(void)
 	buf->cap += Gaplen;
 }
 
+/* insert byte into current buffer, optionally recording on undo stack */
 void
 insert(size_t i, char c, int r)
 {
@@ -477,6 +509,7 @@ insert(size_t i, char c, int r)
 		record(Uinsert, i, 0);
 }
 
+/* delete byte from current buffer, optionally recording on undo stack */
 void
 delete(size_t i, int r)
 {
@@ -489,6 +522,7 @@ delete(size_t i, int r)
 		record(Udelete, i, c);
 }
 
+/* (de/in)dent selected lines in current buffer */
 void
 indent(size_t *a, size_t *b, int fwd)
 {
@@ -527,6 +561,7 @@ indent(size_t *a, size_t *b, int fwd)
 	record(Uend, 0, 0);
 }
 
+/* insert newline and automatically match previous indentation */
 void
 newline(size_t *a, int O)
 {
@@ -538,13 +573,16 @@ newline(size_t *a, int O)
 		return;
 	}
 	insert((*a)++, '\n', 1);
-	sol(&b);
-	if(buf->c[bufaddr(b)] == '\n' && b < len())
-		next(&b);
-	while(buf->c[bufaddr(b++)] == (usetabs ? '\t' : ' ') && b < len())
-		insert((*a)++, usetabs ? '\t' : ' ', 1);
+	if(autoindent){
+		sol(&b);
+		if(buf->c[bufaddr(b)] == '\n' && b < len())
+			next(&b);
+		while(buf->c[bufaddr(b++)] == (usetabs ? '\t' : ' ') && b < len())
+			insert((*a)++, usetabs ? '\t' : ' ', 1);
+	}
 }
 
+/* attempt to open file and read contents into buffer */
 int
 fileinit(Buffer *b)
 {
@@ -584,6 +622,7 @@ fileinit(Buffer *b)
 	return -1;
 }
 
+/* signal handler */
 void
 sig(int n)
 {
@@ -598,6 +637,7 @@ sig(int n)
 	}
 }
 
+/* block all incoming signals */
 void
 sigpend(void)
 {
@@ -609,6 +649,7 @@ sigpend(void)
 	exit(1);
 }
 
+/* install signal handler and unblock signals */
 void
 siginit(void)
 {
@@ -631,6 +672,7 @@ Error:
 	exit(1);
 }
 
+/* set terminal into raw mode */
 void
 terminit(void)
 {
@@ -651,6 +693,7 @@ terminit(void)
 	exit(1);
 }
 
+/* allocate memory for dynamic array */
 int
 arrinit(Array *a, size_t size)
 {
@@ -662,12 +705,14 @@ arrinit(Array *a, size_t size)
 	return 0;
 }
 
+/* free memory for dynamic array */
 void
 arrfree(Array *a)
 {
 	free(a->data);
 }
 
+/* initialise buffer for given file */
 int
 bufinit(int i, const char *path)
 {
@@ -682,6 +727,7 @@ bufinit(int i, const char *path)
 	return -1;
 }
 
+/* free memory for buffer */
 void
 buffree(Buffer *b)
 {
@@ -689,6 +735,7 @@ buffree(Buffer *b)
 	free(b->c);
 }
 
+/* initialise all components of the editor */
 void
 init(int n, char **paths)
 {
@@ -714,6 +761,7 @@ Error:
 	exit(1);
 }
 
+/* return the terminal to original state */
 void
 termreset(void)
 {
@@ -721,6 +769,7 @@ termreset(void)
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &term);
 }
 
+/* deinitialise all components of the editor */
 void
 end(void)
 {
@@ -734,7 +783,7 @@ end(void)
 	arrfree(&dbuf);
 }
 
-
+/* revert last sequence of changes, popping from top of undo stack */
 void
 undo(size_t *a, size_t *b)
 {
@@ -761,6 +810,7 @@ undo(size_t *a, size_t *b)
 	}
 }
 
+/* write contents of byte string to file */
 ssize_t
 writeall(int f, const char *s, size_t n)
 {
@@ -782,6 +832,7 @@ writeall(int f, const char *s, size_t n)
 	return r;
 }
 
+/* write entire contents of current buffer to file */
 ssize_t
 writef(int f)
 {
@@ -796,6 +847,7 @@ writef(int f)
 	return r + n;
 }
 
+/* emergency backup in case of panic */
 void
 save(void)
 {
@@ -812,6 +864,7 @@ save(void)
 	}
 }
 
+/* flush contents of screen buffer to STDOUT */
 void
 vflush(void)
 {
@@ -820,6 +873,7 @@ vflush(void)
 	vbuflen = 0;
 }
 
+/* append to screen buffer */
 void
 vpush(int n, ...)
 {
@@ -839,6 +893,7 @@ vpush(int n, ...)
 	va_end(args);
 }
 
+/* position cursor */
 void
 cursor(unsigned int x, unsigned int y)
 {
@@ -848,6 +903,7 @@ cursor(unsigned int x, unsigned int y)
 	vpush(1, tmp);
 }
 
+/* draw message to status bar */
 void
 bar(const char *fmt, ...){
 	int n;
@@ -868,6 +924,7 @@ bar(const char *fmt, ...){
 	vflush();
 }
 
+/* start dialogue prompt in status bar */
 int
 dialogue(const char *prompt)
 {
@@ -893,6 +950,7 @@ dialogue(const char *prompt)
 	return 0;
 }
 
+/* search for regular expression in current buffer */
 void
 search(size_t *a, size_t *b)
 {
@@ -921,6 +979,7 @@ search(size_t *a, size_t *b)
 	return;
 }
 
+/* display current buffer to terminal */
 void
 display(void)
 {
@@ -981,6 +1040,7 @@ display(void)
 	vflush();
 }
 
+/* copy selection in current buffer to yank buffer */
 void
 yank(void)
 {
@@ -998,6 +1058,7 @@ yank(void)
 	bar("%ld bytes yanked", n);
 }
 
+/* interpret key for motion within current buffer */
 int
 motion(int k)
 {
@@ -1090,6 +1151,7 @@ motion(int k)
 	return 1;
 }
 
+/* interpret key for command mode */
 void
 command(int k)
 {
@@ -1244,10 +1306,8 @@ command(int k)
 		if(buf->c[bufaddr(i)] == '\n' && i < len())
 			next(&i);
 		r = 0;
-		while(i < buf->addr1){
-			next(&i);
-			r++;
-		}
+		while(i < buf->addr1)
+			r += next(&i);
 		fd = checkline(1) - 1;
 		bar("Line %ld, Column %ld, %ld of %ld bytes (%.1f%%)",
 		    buf->vline + fd, r, buf->addr1, len(),
@@ -1257,6 +1317,10 @@ command(int k)
 		usetabs = 1 - usetabs;
 		tabspace = usetabs ? 1 : 4;
 		bar(usetabs ? "Using tabs (\\t)" : "Using %d spaces", tabspace);
+		break;
+	case 'A':
+		autoindent = 1 - autoindent;
+		bar(autoindent ? "Autoindent on" : "Autoindent off");
 		break;
 	case 's':
 		search(&buf->addr1, &buf->addr2);
@@ -1308,6 +1372,7 @@ command(int k)
 	}
 }
 
+/* interpret key for input mode */
 void
 input(int k)
 {
@@ -1364,6 +1429,7 @@ input(int k)
 	}
 }
 
+/* editor event loop */
 void
 run(void)
 {
@@ -1395,9 +1461,8 @@ main(int argc, char **argv)
 	if(sigsetjmp(env, 1) == 0)
 		 init(nbuf, argv);
 	buf = &bufs[current];
-	refresh = 1;
         mode = Command;
-	usetabs = tabspace = 1;
+	refresh = usetabs = tabspace = autoindent =  1;
 	if(status != Panic)
 		run();
 	else

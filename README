@@ -1,4 +1,3 @@
 er is a very minimal text editor.
-It is not vi(m) or emacs.
-There's no runtime configuration.
+It is not vi(m) or emacs or acme.
 You probably shouldn't use it.
