@@ -1486,7 +1486,7 @@ int
 main(int argc, char **argv)
 {
 	if(argc < 2){
-		fprintf(stderr, "er (0.3.0)\nUsage:\n\ter file...\n");
+		fprintf(stderr, "er (0.4.0)\nUsage:\n\ter file...\n");
 		exit(1);
 	}
 	nbuf = argc - 1;
