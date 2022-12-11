@@ -97,13 +97,13 @@ struct Array
 /* editing buffer */
 struct Buffer
 {
-	char   *c;              /* contents */
-	char   path[PATH_MAX];  /* filename */
-	Array  changes;         /* undo stack */
-	short  dirty;           /* modified flag */
-	size_t addr1, addr2;    /* selection offsets */
-	size_t cap, gap, start; /* gap book-keeping */
-	size_t vstart, vline;   /* display book-keeping */
+	char   *c;                  /* contents */
+	char   path[PATH_MAX];      /* filename */
+	Array  changes;             /* undo stack */
+	short  dirty;               /* modified flag */
+	size_t *lead, addr1, addr2; /* selection offsets */
+	size_t cap, gap, start;     /* gap book-keeping */
+	size_t vstart, vline;       /* display book-keeping */
 };
 
 Buffer                bufs[32], *buf;
@@ -717,6 +717,7 @@ int
 bufinit(int i, const char *path)
 {
 	bufs[i].addr1 = bufs[i].addr2 = bufs[i].vstart = bufs[i].vline = 0;
+	bufs[i].lead = &bufs[i].addr2;
 	bufs[i].dirty = 0;
 	strncpy(bufs[i].path, path, PATH_MAX);
 	if(arrinit(&bufs[i].changes, sizeof(Change)) != -1){
@@ -1024,8 +1025,9 @@ display(void)
 			do{
 				if(buf->addr1 != buf->addr2 && k == buf->addr1)
 					vpush(1, CSI("7m"));
-				if(k == buf->addr2){
+				if(k == buf->addr2 + 1)
 					vpush(1, CSI("0m"));
+				if(k == *buf->lead){
 					j2 = j;
 					i2 = i;
 				}
@@ -1045,7 +1047,7 @@ display(void)
 					cursor(j, i);
 				}
 			}while(k < len());
-			if(k == buf->addr2){
+			if(k == *buf->lead){
 				if(ch[0] == '\n'){
 					j2 = l + 2;
 					i2 = i + 1;
@@ -1082,67 +1084,100 @@ yank(void)
 	bar("%ld bytes yanked", n);
 }
 
+/* swap values of address variables */
+void
+swap(size_t *a, size_t *b){
+	size_t tmp;
+
+	tmp = *a;
+	*a = *b;
+	*b = tmp;
+}
+
 /* interpret key for motion within current buffer */
 int
 motion(int k)
 {
-	size_t i, tmp;
-	static int ignore[] = { 'h', 'j', 'k', 'l', '0', '$' };
+	size_t tmp;
 
-	if(mode == Input){
-		for(i = 0; i < LEN(ignore); i++){
-			if(k == ignore[i])
-				return -1;
-		}
-	}
 	refresh = 1;
 	switch(k){
-	case Kleft:
 	case 'h':
-		if(mode != Select && buf->addr1 > 0){
-			prev(&buf->addr1);
-			buf->addr2 = buf->addr1;
-		}else if(mode == Select && buf->addr2 > buf->addr1)
-			prev(&buf->addr2);
-		checkline(0);
-		break;
-	case Kright:
-	case 'l':
-		if(buf->addr2 < len() - 1){
-			next(&buf->addr2);
+		if(mode == Input)
+			return -1; /* else fallthrough */
+	case Kleft:
+		if(buf->addr1 == buf->addr2)
+			buf->lead = &buf->addr1;
+		if(*buf->lead > 0){
+			prev(buf->lead);
 			if(mode != Select)
-				buf->addr1 = buf->addr2;
-			checkline(1);
+				buf->addr2 = buf->addr1;
+			checkline(buf->lead == &buf->addr1 ? 0 : 1);
 		}
 		break;
-	case Kup:
+	case 'l':
+		if(mode == Input)
+			return -1; /* else fallthrough */
+	case Kright:
+		if(buf->addr1 == buf->addr2)
+			buf->lead = &buf->addr2;
+		if(*buf->lead < len() - 1){
+			next(buf->lead);
+			if(mode != Select)
+				buf->addr1 = buf->addr2;
+			checkline(buf->lead == &buf->addr1 ? 0 : 1);
+		}
+		break;
 	case 'k':
-		if(buf->addr2 > 0)
-			prevline(&buf->addr2);
-		if(mode != Select)
-			buf->addr1 = buf->addr2;
-		checkline(0);
+		if(mode == Input)
+			return -1; /* else fallthrough */
+	case Kup:
+		if(buf->addr1 == buf->addr2)
+			buf->lead = &buf->addr1;
+		if(*buf->lead > 0){
+			prevline(buf->lead);
+			if(buf->addr1 > buf->addr2){
+				swap(&buf->addr1, &buf->addr2);
+				buf->lead = &buf->addr1;
+			}
+			if(mode != Select)
+				buf->addr2 = buf->addr1;
+			checkline(buf->lead == &buf->addr1 ? 0 : 1);
+		}
 		break;
-	case Kdown:
 	case 'j':
-		if(buf->addr2 < len() - 1)
-			nextline(&buf->addr2);
-		if(mode != Select)
-			buf->addr1 = buf->addr2;
-		checkline(1);
+		if(mode == Input)
+			return -1; /* else fallthrough */
+	case Kdown:
+		if(buf->addr1 == buf->addr2)
+			buf->lead = &buf->addr2;
+		if(*buf->lead < len() - 1){
+			nextline(buf->lead);
+			if(buf->addr1 > buf->addr2){
+				swap(&buf->addr1, &buf->addr2);
+				buf->lead = &buf->addr2;
+			}
+			if(mode != Select)
+				buf->addr1 = buf->addr2;
+			checkline(buf->lead == &buf->addr1 ? 0 : 1);
+		}
 		break;
+	case '0':
+		if(mode == Input)
+			return -1; /* else fallthrough */
 	case Khome:
 	case CTRL('a'):
-	case '0':
 		sol(&buf->addr1);
 		if(buf->addr1 > 0 && buf->addr1 < len() - 1)
 			next(&buf->addr1);
 		if(mode != Select)
 			buf->addr2 = buf->addr1;
 		break;
+	case '$':
+		if(mode == Input)
+			return -1; /* else fallthrough */
 	case Kend:
 	case CTRL('e'):
-	case '$':
 		eol(&buf->addr2);
 		if(mode != Select)
 			buf->addr1 = buf->addr2;
@@ -1167,11 +1202,6 @@ motion(int k)
 		refresh = 0;
 		return -1;
 	};
-	if(buf->addr1 > buf->addr2){
-		buf->addr1 = buf->addr2;
-		mode = Command;
-		bar("COMMAND");
-	}
 	return 1;
 }
 
