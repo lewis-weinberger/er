@@ -57,7 +57,7 @@ the buffer.
 .SS Motions
 In COMMAND and INPUT modes, any motions apply to the
 single cursor address. In SELECT mode, motions apply
-to the higher address of the selection. In the below
+to the lead address of the selection. In the below
 list, keys within square brackets are only
 interpreted as motions in COMMAND and SELECT modes.
 .RS
@@ -116,13 +116,15 @@ Copy (yank) the selected text.
 Paste text after the current cursor position.
 .IP P
 Paste text before the current cursor position.
+.IP [
+Paste text on the next line.
 .IP u
 Undo last textual change.
 .IP <
 Outdent the line(s) in the current selection by up to 4 spaces.
 .IP >
 Indent the line(s) in the current selection by 4 spaces.
-.IP g
+.IP ,
 Move cursor to first character in the buffer.
 .IP G
 Move cursor to last character in the buffer.

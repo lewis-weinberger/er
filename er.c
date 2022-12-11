@@ -1293,6 +1293,7 @@ command(int k)
 			next(&buf->addr1);
 		if(buf->c[bufaddr(buf->addr2)] != '\n')
 			eol(&buf->addr2);
+		buf->lead = &buf->addr2;
 		mode = Select;
 		bar("SELECT");
 		break;
@@ -1326,6 +1327,9 @@ command(int k)
 		buf->addr1 = buf->addr2;
 		mode = Command;
 		break;
+	case '[':
+		if(ybuf.len > 0)
+			eol(&buf->addr2); /* fallthrough */
 	case 'p':
 		if(ybuf.len > 0)
 			next(&buf->addr2); /* fallthrough */
@@ -1345,7 +1349,7 @@ command(int k)
 	case '>':
 		indent(&buf->addr1, &buf->addr2, 1);
 		break;
-	case 'g':
+	case ',':
 		buf->addr1 = buf->addr2 = buf->vstart = buf->vline = 0;
 		break;
 	case 'G':
