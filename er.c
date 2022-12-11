@@ -962,7 +962,7 @@ search(size_t *a, size_t *b, int replace, int all)
 	size_t n, k;
 
 	if(dialogue(replace ?
-	            (all? "Replace all: " : "Replace:") : "Search: ") == -1)
+	            (all? "Replace all: " : "Replace: ") : "Search: ") == -1)
 		return;
 	r = regcomp(&reg, dbuf.data, REG_EXTENDED | REG_NEWLINE);
 	k = 0;
@@ -985,10 +985,12 @@ search(size_t *a, size_t *b, int replace, int all)
 					s = dbuf.data;
 					while(*s)
 						insert((*b)++, *s++, 1);
+					*a = *b;
 					k++;
 					record(Uend, 0, 0);
 				}
-			}
+			}else
+				break;
 		}while(all && r == 0);
 	}
 	bar("");
@@ -1377,7 +1379,7 @@ command(int k)
 	case 't':
 		usetabs = 1 - usetabs;
 		tabspace = usetabs ? 1 : 4;
-		bar(usetabs ? "Using tabs (\\t)" : "Using %d spaces", tabspace);
+		bar(usetabs ? "Using tabs (\\t)" : "Using spaces");
 		break;
 	case 'A':
 		autoindent = 1 - autoindent;
@@ -1538,6 +1540,7 @@ main(int argc, char **argv)
 		save();
 	end();
 	if(status == Panic)
-		fprintf(stderr, "er panicked and tried to save buffers to er.out!");
+		fprintf(stderr,
+		        "er panicked and tried to save buffer(s) to er.out!\n");
 	return 0;
 }
