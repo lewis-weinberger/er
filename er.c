@@ -438,7 +438,7 @@ resize(Array *a, short type)
 
 	switch(type){
 	case Char:
-		size = sizeof(char);
+		size = 1;
 		break;
 	case Chnge:
 		size = sizeof(Change);
@@ -486,7 +486,7 @@ grow(void)
 {
 	char *new;
 
-	new = realloc(buf->c, (buf->cap + Gaplen) * sizeof(char));
+	new = realloc(buf->c, (buf->cap + Gaplen));
 	if(new == NULL)
 		err(Panic);
 	buf->c = new;
@@ -596,7 +596,7 @@ fileinit(Buffer *b)
 	n = 0;
 	if((fd = open(b->path, O_RDWR | O_CREAT, 0666)) > 0 && fstat(fd, &st) != -1)
 		n = st.st_size;
-	b->c = calloc(n + Gaplen, sizeof(char));
+	b->c = calloc(n + Gaplen, 1);
 	if(b->c != NULL){
 		b->cap = n + Gaplen;
 		b->start = n;
@@ -748,11 +748,11 @@ init(int n, char **paths)
 		if((bufinit(i, paths[i + 1])) == -1)
 			goto Error;
 	}
-	if(arrinit(&ybuf, sizeof(char)) == -1)
+	if(arrinit(&ybuf, 1) == -1)
 		goto Error;
-	if(arrinit(&bbuf, sizeof(char)) == -1)
+	if(arrinit(&bbuf, 1) == -1)
 		goto Error;
-	if(arrinit(&dbuf, sizeof(char)) == -1)
+	if(arrinit(&dbuf, 1) == -1)
 		goto Error;
 	terminit();
 	siginit();
@@ -1056,9 +1056,12 @@ display(void)
 					i2 = i;
 				}
 			}
-		}else{
+		}else if(ch[0] == '\n'){
+			snprintf(tmp, sizeof(tmp), CSI("36m %*ld "), l, buf->vline + i);
+			vpush(2, tmp, CSI("0m"));
+			memset(ch, 0, sizeof(ch));
+		}else
 			vpush(2, CSI("90m~"), CSI("0m"));
-		}
 		vpush(1, CSI("K"));
 	}
 	vpush(1, CSI("?25h"));
