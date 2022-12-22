@@ -1064,7 +1064,6 @@ Restart:
 					vflush();
 					goto Restart;
 				}
-				fprintf(stderr, "h: %d, jp: %d, j: %d\n", h, jp, j);
 				if(ch[0] == '\n'){
 					if(j > dim.ws_col - 1){
 						cursor(0, i);
