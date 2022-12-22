@@ -289,6 +289,8 @@ next(size_t *i)
 	}
 	if(wc == '\t')
 		return 8;
+	if(wc == '\n')
+		return 1;
 	return wcwidth(wc);
 }
 
@@ -1010,43 +1012,66 @@ search(size_t *a, size_t *b, int replace, int all)
 void
 display(void)
 {
-	int i, j, l, i2, j2, n;
-	size_t k;
+	int i, j, l, i2, j2, n, h, jp, width;
+	size_t k, kp;
 	char tmp[32];
 
 	l = digits(buf->vline + dim.ws_row);
 	j2 = l + 2;
-	for(i = j = i2 = 0, k = buf->vstart; i < dim.ws_row - 1; i++, j = 0){
+	h = 0;
+Restart:
+	for(i = jp = j = i2 = 0, kp = k = buf->vstart; i < dim.ws_row - 1; i++, jp = j = 0){
 		cursor(j, i);
 		if(k < len()){
 			snprintf(tmp, sizeof(tmp), CSI("34m %*ld "), l, buf->vline + i);
 			vpush(2, tmp, CSI("0m"));
-			j += l + 2;
+			if(h > 0){
+				cursor(0, i);
+				vpush(2, CSI("35m<"), CSI("0m"));
+				cursor(l + 2, i);
+			}
+			j = l + 2;
 			if(buf->addr1 != buf->addr2 && k >= buf->addr1 && k <= buf->addr2)
 				vpush(1, CSI("7m"));
 			do{
 				if(buf->addr1 != buf->addr2 && k == buf->addr1)
 					vpush(1, CSI("7m"));
-				if(k == buf->addr2 + 1)
+				if(kp == buf->addr2)
 					vpush(1, CSI("0m"));
 				if(k == *buf->lead){
 					j2 = j;
 					i2 = i;
 				}
-				j += next(&k);
-				if(j < dim.ws_col){
-					if(ch[0] == '\t') {
-						for(n = 0; n < 8; n++)
-							vpush(1, " ");
-					}else
-						vpush(1, (ch[0] == '\n') ? " " : ch);
+				kp = k;
+				width = next(&k);
+				jp += width;
+				if(jp - width >= h){
+					j = l + 2 + jp - h;
+					if(j <= dim.ws_col){
+						if(ch[0] == '\t') {
+							for(n = 0; n < width; n++)
+								vpush(1, " ");
+						}else
+							vpush(1, (ch[0] == '\n') ? " " : ch);
+					}
+				}else{
+					for(n = 0; n < jp - h; n++)
+						vpush(1, " ");
 				}
-				if(ch[0] == '\n')
+				if(kp == *buf->lead && j > (dim.ws_col - 1)){
+					h = j - (dim.ws_col - 1);
+					vpush(1, CSI("2K"));
+					vflush();
+					goto Restart;
+				}
+				fprintf(stderr, "h: %d, jp: %d, j: %d\n", h, jp, j);
+				if(ch[0] == '\n'){
+					if(j > dim.ws_col - 1){
+						cursor(0, i);
+						vpush(2, CSI("35m>"), CSI("0m"));
+						cursor(j, i);
+					}
 					break;
-				else if(j == dim.ws_col){
-					cursor(0, i);
-					vpush(2, CSI("35m>"), CSI("0m"));
-					cursor(j, i);
 				}
 			}while(k < len());
 			if(k == *buf->lead){
