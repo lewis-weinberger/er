@@ -1016,6 +1016,7 @@ display(void)
 	size_t k, kp;
 	char tmp[32];
 
+	vflush();
 	l = digits(buf->vline + dim.ws_row);
 	j2 = l + 2;
 	h = 0;
@@ -1060,8 +1061,7 @@ Restart:
 				}
 				if(kp == *buf->lead && j > (dim.ws_col - 1)){
 					h = j - (dim.ws_col - 1);
-					vpush(1, CSI("2K"));
-					vflush();
+					vbuflen = 0;
 					goto Restart;
 				}
 				if(ch[0] == '\n'){
@@ -1549,7 +1549,7 @@ int
 main(int argc, char **argv)
 {
 	if(argc < 2){
-		fprintf(stderr, "er (0.4.0)\nUsage:\n\ter file...\n");
+		fprintf(stderr, "er (0.5.0)\nUsage:\n\ter file...\n");
 		exit(1);
 	}
 	nbuf = argc - 1;
