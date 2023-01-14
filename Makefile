@@ -10,11 +10,19 @@ ifeq ($(shell uname),Darwin)
 	CFLAGS += -D_DARWIN_C_SOURCE
 endif
 
-er: er.c
-	$(CC) $(CFLAGS) -D_XOPEN_SOURCE=600 er.c -o er -lm
+INC = posix/er.h dat.h fns.h
+
+er: er.o ui.o util.o decode.o
+	$(CC) $(CFLAGS) -o $@ $^ -lm
+
+%.o: %.c $(INC)
+	$(CC) $(CFLAGS) -D_XOPEN_SOURCE=600 -Iposix -c -o $@ $<
+
+%.o: posix/%.c $(INC)
+	$(CC) $(CFLAGS) -D_XOPEN_SOURCE=600 -Iposix -c -o $@ $<
 
 clean:
-	rm -f er er.out
+	rm -f *.o er er.out
 
 install: er er.1
 	mkdir -p $(PREFIX)/bin
