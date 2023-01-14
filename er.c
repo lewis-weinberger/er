@@ -323,16 +323,12 @@ newline(size_t *a, int O)
 int
 fileinit(Buffer *b)
 {
-	struct stat st;
 	size_t n;
 	ssize_t k;
 	char *p;
 	int fd;
 
-	fd = -1;
-	n = 0;
-	if((fd = open(b->path, O_RDWR | O_CREAT, 0666)) > 0 && fstat(fd, &st) != -1)
-		n = st.st_size;
+	fd = fileopen(b->path, &n);
 	b->c = calloc(n + Gaplen, 1);
 	if(b->c != NULL){
 		b->cap = n + Gaplen;
@@ -469,28 +465,6 @@ undo(size_t *a, size_t *b)
 	}
 }
 
-/* write contents of byte string to file */
-ssize_t
-writeall(int f, const char *s, size_t n)
-{
-	int w;
-	ssize_t r;
-
-	r = n;
-	while(n){
-		w = write(f, s, n);
-		if(w == -1){
-			if(errno == EINTR)
-				w = 0;
-			else
-				return -1;
-		}
-		s += w;
-		n -= w;
-	}
-	return r;
-}
-
 /* write entire contents of current buffer to file */
 ssize_t
 writef(int f)
@@ -504,61 +478,6 @@ writef(int f)
 	if(r == -1)
 		return -1;
 	return r + n;
-}
-
-/* search for regular expression in current buffer */
-void
-search(size_t *a, size_t *b, int replace, int all)
-{
-	regex_t reg;
-	regmatch_t m[1];
-	char err[128], *s;
-	int r;
-	size_t n, k;
-
-	if(dialogue(replace ?
-	            (all? "Replace all: " : "Replace: ") : "Search: ") == -1)
-		return;
-	r = regcomp(&reg, dbuf.data, REG_EXTENDED | REG_NEWLINE);
-	k = 0;
-	if(r == 0){
-		if(replace && dialogue("with: ") == -1){
-			regfree(&reg);
-			return;
-		}
-		do{
-			move(len()); /* please mind the gap */
-			r = regexec(&reg, buf->c + *b, 1, m, 0);
-			if(r == 0 && *b + m[0].rm_so < len()){
-				*a = *b + m[0].rm_so;
-				*b += m[0].rm_eo - 1;
-				if(replace){
-					n = 1 + *b - *a;
-					while(n-- > 0)
-						delete(*a, 1);
-					*b = *a;
-					s = dbuf.data;
-					while(*s)
-						insert((*b)++, *s++, 1);
-					*a = *b;
-					k++;
-					record(Uend, 0, 0);
-				}
-			}else
-				break;
-		}while(all && r == 0);
-	}
-	bar("");
-	if(r != 0){
-		if(k > 0)
-			bar("Replaced %ld matches", k);
-		else{
-			regerror(r, &reg, err, sizeof(err));
-			bar(err);
-		}
-	}
-	regfree(&reg);
-	return;
 }
 
 /* copy selection in current buffer to yank buffer */
@@ -890,7 +809,7 @@ command(int k)
 	case 'W':
 		if(len() == 0 || buf->c[bufaddr(len() - 1)] != '\n')
 			insert(len(), '\n', 0);
-		fd = open(buf->path, O_WRONLY | O_TRUNC, 0666);
+		fd = open(buf->path, SAVE);
 		if(fd > 0){
 			r = writef(fd);
 			if(r > 0){
@@ -1015,7 +934,7 @@ int
 main(int argc, char **argv)
 {
 	if(argc < 2){
-		eprint("er (0.5.0)\nUsage:\n\ter file...\n");
+		fprintf(stderr, "er (0.5.0)\nUsage:\n\ter file...\n");
 		exit(1);
 	}
 	nbuf = argc - 1;
@@ -1030,6 +949,6 @@ main(int argc, char **argv)
 		save();
 	end();
 	if(status == Panic)
-		eprint("er panicked and tried to save buffer(s) to er.out!\n");
+		fprintf(stderr, "er panicked and tried to save buffer(s) to er.out!\n");
 	return 0;
 }

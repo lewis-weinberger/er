@@ -2,9 +2,10 @@
 #include "../dat.h"
 #include "../fns.h"
 
-extern Buffer         bufs[32], *buf;
-extern size_t         nbuf;
-extern jmp_buf        env;
+extern Buffer  bufs[32], *buf;
+extern Array   dbuf;
+extern size_t  nbuf;
+extern jmp_buf env;
 
 sigset_t              oset;
 volatile sig_atomic_t status;
@@ -15,6 +16,20 @@ err(int n)
 {
 	status = n;
 	siglongjmp(env, 1);
+}
+
+/* open file and determine number of bytes */
+int
+fileopen(const char *path, size_t *len)
+{
+	struct stat st;
+	int fd;
+
+	fd = -1;
+	*len = 0;
+	if((fd = open(path, O_RDWR | O_CREAT, 0666)) > 0 && fstat(fd, &st) != -1)
+		*len = st.st_size;
+	return fd;
 }
 
 /* next byte in the current buffer */
@@ -107,4 +122,82 @@ save(void)
 		}
 		close(fd);
 	}
+}
+
+/* search for regular expression in current buffer */
+void
+search(size_t *a, size_t *b, int replace, int all)
+{
+	regex_t reg;
+	regmatch_t m[1];
+	char err[128], *s;
+	int r;
+	size_t n, k;
+
+	if(dialogue(replace ?
+	            (all? "Replace all: " : "Replace: ") : "Search: ") == -1)
+		return;
+	r = regcomp(&reg, dbuf.data, REG_EXTENDED | REG_NEWLINE);
+	k = 0;
+	if(r == 0){
+		if(replace && dialogue("with: ") == -1){
+			regfree(&reg);
+			return;
+		}
+		do{
+			move(len()); /* please mind the gap */
+			r = regexec(&reg, buf->c + *b, 1, m, 0);
+			if(r == 0 && *b + m[0].rm_so < len()){
+				*a = *b + m[0].rm_so;
+				*b += m[0].rm_eo - 1;
+				if(replace){
+					n = 1 + *b - *a;
+					while(n-- > 0)
+						delete(*a, 1);
+					*b = *a;
+					s = dbuf.data;
+					while(*s)
+						insert((*b)++, *s++, 1);
+					*a = *b;
+					k++;
+					record(Uend, 0, 0);
+				}
+			}else
+				break;
+		}while(all && r == 0);
+	}
+	bar("");
+	if(r != 0){
+		if(k > 0)
+			bar("Replaced %ld matches", k);
+		else{
+			regerror(r, &reg, err, sizeof(err));
+			bar(err);
+		}
+	}
+	regfree(&reg);
+	return;
+}
+
+
+/* write contents of byte string to file */
+ssize_t
+writeall(int f, const char *s, size_t n)
+{
+	int w;
+	ssize_t r;
+
+	r = n;
+	while(n){
+		w = write(f, s, n);
+		if(w == -1){
+			if(errno == EINTR)
+				w = 0;
+			else
+				return -1;
+		}
+		s += w;
+		n -= w;
+	}
+	return r;
 }

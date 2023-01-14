@@ -1,0 +1,5 @@
+<$objtype/mkfile
+
+<plan9/mk.common
+
+</sys/src/cmd/mkone

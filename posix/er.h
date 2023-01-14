@@ -16,8 +16,8 @@
 #include <unistd.h>
 #include <wchar.h>
 
+#define SAVE      (O_WRONLY | O_TRUNC)
 #define jmp       sigsetjmp
-#define eprint(X) fprintf(stderr, X)
 #define locale()  setlocale(LC_ALL, "")
 
 /* keyboard keys */

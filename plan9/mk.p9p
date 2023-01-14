@@ -1,0 +1,5 @@
+<$PLAN9/src/mkhdr
+
+<plan9/mk.common
+
+<$PLAN9/src/mkone

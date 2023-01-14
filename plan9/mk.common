@@ -1,0 +1,16 @@
+TARG=er
+
+HFILES=\
+	plan9/er.h\
+	fns.h\
+	dat.h\
+
+OFILES=\
+	er.$O\
+	ui.$O\
+	util.$O\
+
+CFLAGS=$CFLAGS -Iplan9
+
+%.$O: plan9/%.c
+	$CC $CFLAGS plan9/$stem.c
