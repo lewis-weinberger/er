@@ -50,6 +50,6 @@ dialogue(const char *prompt)
 
 /* display current buffer to terminal */
 void
-display(void)
+view(void)
 {
 }

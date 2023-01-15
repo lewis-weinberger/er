@@ -238,7 +238,7 @@ dialogue(const char *prompt)
 
 /* display current buffer to terminal */
 void
-display(void)
+view(void)
 {
 	int i, j, l, i2, j2, n, h, jp, width;
 	size_t k, kp;

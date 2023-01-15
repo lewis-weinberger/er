@@ -919,7 +919,7 @@ run(void)
 		err(Panic);
 	while(!quit){
 		if(refresh){
-			display();
+			view();
 			refresh = 0;
 		}
 		k = key();

@@ -14,7 +14,7 @@ ssize_t writef(int);
 void bar(const char*, ...);
 int  dialogue(const char*);
 int  dims(void);
-void display(void);
+void view(void);
 int  key(void);
 int  rows(void);
 void terminit(void);
