@@ -4,6 +4,7 @@
 enum
 {
 	Gaplen  = 256, /* number of bytes in a full gap */
+	Timeout = 1,   /* read timeout in deciseconds */
 };
 
 /* error handling status */

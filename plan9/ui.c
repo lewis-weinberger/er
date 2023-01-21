@@ -2,49 +2,76 @@
 #include "../dat.h"
 #include "../fns.h"
 
-/* get current terminal dimensions */
+ulong tick;
+
+/* restore connection to window after resizing */
 int
 dims(void)
 {
+	if(getwindow(display, Refnone) < 0)
+		return -1;
 	return 0;
 }
 
-/* return current number of rows in terminal */
+/* return current number of rows in display */
 int
 rows(void)
 {
-	return 0;
+	return (Dy(screen->r) / font->height);
 }
 
 /* get user input from keyboard */
 int
 key(void)
 {
-	return 0;
+	Event e;
+
+	if(event(&e) == Ekeyboard){
+		memset(ch, 0, sizeof(ch));
+		if(e.kbdc < KF)
+			runetochar(ch, e.kbdc);
+		return e.kbdc;
+	}
+	return -1;
 }
 
-/* set terminal into raw mode */
+/* handler for window resizing event */
+void
+eresized(int new){
+	err(Reset);
+}
+
+/* initialise graphics and event handler */
 void
 terminit(void)
 {
+	if(initdraw(nil, nil, "er") == -1)
+		sysfatal("%r");
+	einit(Ekeyboard);
+	eresized(0);
+	if((tick = etimer(0, Timeout * 100)) == 0)
+		sysfatal("%r");
 }
 
-/* return the terminal to original state */
+/* disconnect display */
 void
 termreset(void)
 {
+	closedisplay(display);
 }
 
 /* draw message to status bar */
 void
 bar(const char *fmt, ...)
 {
+	/* TODO */
 }
 
 /* start dialogue prompt in status bar */
 int
 dialogue(const char *prompt)
 {
+	/* TODO */
 	return 0;
 }
 
@@ -52,4 +79,5 @@ dialogue(const char *prompt)
 void
 view(void)
 {
+	/* TODO */
 }

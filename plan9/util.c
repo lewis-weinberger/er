@@ -2,9 +2,9 @@
 #include "../dat.h"
 #include "../fns.h"
 
-extern Buffer  *buf;
+extern Buffer  bufs[32], *buf;
+extern size_t  nbuf;
 extern jmp_buf env;
-extern Font    *font;
 
 volatile int status;
 char         ch[5];
@@ -97,16 +97,31 @@ siginit(void)
 void
 save(void)
 {
+	int fd, i;
+	fd = create("er.out", OWRITE, 0666);
+	if(fd > 0){
+		for(i = 0; i < nbuf; i++){
+			buf = &bufs[i];
+			writef(fd);
+		}
+		close(fd);
+	}
 }
 
 /* search for regular expression in current buffer */
 void
 search(size_t *a, size_t *b, int replace, int all)
 {
+	/* TODO */
 }
 
 ssize_t
 writeall(int f, const char *s, size_t n)
 {
-	return 0;
+	long w;
+
+	w = write(f, s, n);
+	if(w != n)
+		return -1;
+	return w;
 }

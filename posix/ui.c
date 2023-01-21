@@ -134,7 +134,7 @@ terminit(void)
 		new.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
 		new.c_cflag |= CS8;
 		new.c_cc[VMIN] = 0;
-		new.c_cc[VTIME] = 1; /* ds */
+		new.c_cc[VTIME] = Timeout;
 		if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &new) != -1)
 			return;
 	}
