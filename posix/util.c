@@ -2,13 +2,13 @@
 #include "../dat.h"
 #include "../fns.h"
 
+sigset_t              oset;
+volatile sig_atomic_t status;
+
 extern Buffer  bufs[32], *buf;
 extern Array   dbuf;
 extern size_t  nbuf;
 extern jmp_buf env;
-
-sigset_t              oset;
-volatile sig_atomic_t status;
 
 /* throw error */
 void

@@ -2,12 +2,12 @@
 #include "../dat.h"
 #include "../fns.h"
 
+volatile int status;
+char         ch[5];
+
 extern Buffer  bufs[32], *buf;
 extern size_t  nbuf;
 extern jmp_buf env;
-
-volatile int status;
-char         ch[5];
 
 /* throw error */
 void

@@ -13,6 +13,7 @@ char           vbuf[Vbufmax];
 size_t         vbuflen;
 struct winsize dim;
 struct termios term;
+
 extern Buffer  *buf;
 extern Array   bbuf, dbuf;
 
