@@ -255,10 +255,10 @@ key(void)
 		}
 		return Kesc;
 	}
+	if(k == '\b' || k == Kbs)
+		return Kbs;
 	if (k <= 0x1f)
 		return k;
-	if (k == Kbs)
-		return Kbs;
 	return parsechar(k);
 }
 
