@@ -1227,6 +1227,22 @@ motion(int k)
 		buf->addr1 = buf->addr2;
 		checkline(1);
 		break;
+	case CTRL('D'):
+		tmp = dim.ws_row / 2;
+		while(tmp-- > 0 && buf->vstart < len() - 1){
+			nextline(&buf->vstart);
+			buf->vline++;
+		}
+		checkline(0);
+		break;
+	case CTRL('U'):
+		tmp = dim.ws_row / 2;
+		while(tmp-- > 0 && buf->vstart > 0){
+			prevline(&buf->vstart);
+			buf->vline--;
+		}
+		checkline(1);
+		break;
 	default:
 		refresh = 0;
 		return -1;
@@ -1512,6 +1528,7 @@ input(int k)
 		newline(&buf->addr2, 0);
 		record(Uend, 0, 0);
 		buf->addr1 = buf->addr2;
+		checkline(1);
 		break;
 	default:
 		s = ch;
