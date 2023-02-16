@@ -1,3 +1,7 @@
+#ifdef __linux__
+#	define _XOPEN_SOURCE 600
+#endif
+
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -18,6 +22,10 @@
 
 #define CSI(ch) ("\x1b[" ch)
 #define LEN(X)  (sizeof(X) / sizeof(X[0]))
+
+#ifndef CTRL
+#	define CTRL(X) ((X) & 0x1F)
+#endif
 
 /* misc constants */
 enum
@@ -447,7 +455,7 @@ resize(Array *a, short type)
 		break;
 	default:
 		err(Panic);
-		break;
+		return;
 	}
 	new = realloc(a->data, size * 2 * a->cap);
 	if(new == NULL)
@@ -458,7 +466,7 @@ resize(Array *a, short type)
 
 /* append new item to the end of dynamic array */
 void
-append(Array *a, short type, ...)
+append(Array *a, int type, ...)
 {
 	va_list args;
 
@@ -1566,7 +1574,7 @@ int
 main(int argc, char **argv)
 {
 	if(argc < 2){
-		fprintf(stderr, "er (0.5.0)\nUsage:\n\ter file...\n");
+		fprintf(stderr, "er (0.6.0)\nUsage:\n\ter file...\n");
 		exit(1);
 	}
 	nbuf = argc - 1;

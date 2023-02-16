@@ -1,20 +1,19 @@
 # Makefile for UNIX-like systems (SUSv3/POSIX.1-2001)
 
-# Change as needed
-CC     = gcc
-CFLAGS = -std=c99 -O2 -pedantic -Wall -Wextra
-PREFIX = /usr/local
+.POSIX:
+.SUFFIXES:
 
-# MacOS
-ifeq ($(shell uname),Darwin)
-	CFLAGS += -D_DARWIN_C_SOURCE
-endif
+CC      = cc
+CFLAGS  = -std=c99 -O2 -pedantic -Wall -Wextra
+LDFLAGS =
+LDLIBS  = -lm
+PREFIX  = /usr/local
 
-er: er.c
-	$(CC) $(CFLAGS) -D_XOPEN_SOURCE=600 er.c -o er -lm
+er: er.o
+	$(CC) $(LDFLAGS) -o $@ er.o $(LDLIBS)
 
 clean:
-	rm -f er er.out
+	rm -f er er.o er.out
 
 install: er er.1
 	mkdir -p $(PREFIX)/bin
@@ -24,4 +23,6 @@ install: er er.1
 	cp -f er.1 $(PREFIX)/share/man/man1/
 	chmod 644 $(PREFIX)/share/man/man1/er.1
 
-.PHONY: clean install
+.SUFFIXES: .c .o
+.c.o:
+	$(CC) $(CFLAGS) -o $@ -c $<
