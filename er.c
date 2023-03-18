@@ -67,13 +67,6 @@ enum
 	Select
 };
 
-/* dynamic array operation type */
-enum
-{
-	Char,
-	Chnge
-};
-
 /* undo stack type */
 enum
 {
@@ -98,6 +91,7 @@ struct Change
 struct Array
 {
 	void   *data; /* contents */
+	size_t size;  /* element size */
 	size_t len;   /* length */
 	size_t cap;   /* capacity */
 };
@@ -441,23 +435,11 @@ move(size_t i)
 
 /* expand allocated memory for dynamic array */
 void
-resize(Array *a, short type)
+resize(Array *a)
 {
 	void *new;
-	size_t size;
 
-	switch(type){
-	case Char:
-		size = 1;
-		break;
-	case Chnge:
-		size = sizeof(Change);
-		break;
-	default:
-		err(Panic);
-		return;
-	}
-	new = realloc(a->data, size * 2 * a->cap);
+	new = realloc(a->data, a->size * 2 * a->cap);
 	if(new == NULL)
 		err(Panic);
 	a->data = new;
@@ -465,29 +447,17 @@ resize(Array *a, short type)
 }
 
 /* append new item to the end of dynamic array */
-void
-append(Array *a, int type, ...)
-{
-	va_list args;
-
-	if(a->len == a->cap)
-		resize(a, type);
-	va_start(args, type);
-	switch(type){
-		case Char:
-			((char *)a->data)[a->len++] = va_arg(args, int);
-			break;
-		case Chnge:
-			((Change *)a->data)[a->len++] = va_arg(args, Change);
-			break;
-	}
-	va_end(args);
-}
+#define APPEND(A, T, E) do{                 \
+	if((A)->len == (A)->cap)            \
+		resize(A);                  \
+	((T *)(A)->data)[(A)->len++] = (E); \
+}while(0)
 
 /* append new textual change to the current buffer's undo stack */
 void
 record(short t, size_t i, char c) {
-	append(&buf->changes, Chnge, (Change){ t, i, c });
+	Change x = { t, i, c };
+	APPEND(&buf->changes, Change, x);
 }
 
 /* reallocate memory for current buffer's gap */
@@ -710,6 +680,7 @@ arrinit(Array *a, size_t size)
 	a->data = calloc(Gaplen, size);
 	if(a->data == NULL)
 		return -1;
+	a->size = size;
 	a->len = 0;
 	a->cap = Gaplen;
 	return 0;
@@ -921,7 +892,7 @@ bar(const char *fmt, ...){
 	va_list args;
 
 	while(bbuf.cap < (size_t)dim.ws_col + 1)
-		resize(&bbuf, Char);
+		resize(&bbuf);
 	va_start(args, fmt);
 	n = vsnprintf(bbuf.data, dim.ws_col + 1, fmt, args);
 	va_end(args);
@@ -954,7 +925,7 @@ dialogue(const char *prompt)
 		else{
 			s = ch;
 			while (*s)
-				append(&dbuf, Char, *s++);
+				APPEND(&dbuf, char, *s++);
 		}
 		bar("%s%s", prompt, dbuf.data);
 	}
@@ -1114,7 +1085,7 @@ yank(void)
 	next(&k);
 	n = k - buf->addr1;
 	while(ybuf.cap < n)
-		resize(&ybuf, Char);
+		resize(&ybuf);
 	ybuf.len = 0;
 	while(ybuf.len < n)
 		((char *)ybuf.data)[ybuf.len++] = buf->c[bufaddr(j++)];
