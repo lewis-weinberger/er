@@ -233,13 +233,13 @@ key(void)
 		{ '[', '6', '~', Kpgdown },
 		/* xterm */
 		{ 'O', 'H',  -1,   Khome },
-		{ 'O', 'F',  -1,    Kend }
+		{ 'O', 'F',  -1,    Kend },
 		/* rxvt */
 		{ '[', '7', '~',   Khome },
 		{ '[', '8', '~',    Kend },
 		/* SCO ANSI */
 		{ '[', 'H',  -1,   Khome },
-		{ '[', 'F',  -1,    Kend },
+		{ '[', 'F',  -1,    Kend }
 	};
 
 	memset(ch, 0, 5);
@@ -924,7 +924,7 @@ dialogue(const char *prompt)
 			bar("");
 			return -1;
 		}else if(k == Kbs && dbuf.len > 0)
-			((char *)dbuf.data)[--dbuf.len] = 0;
+			((char *)dbuf.data)[--dbuf.len] = 0; /* TODO: multibyte */
 		else{
 			s = ch;
 			while (*s)
@@ -1470,6 +1470,7 @@ void
 input(int k)
 {
 	char *s;
+	size_t a;
 
 	if(motion(k) > 0)
 		return;
@@ -1480,16 +1481,25 @@ input(int k)
 		break;
 	case Kbs:
 		if(buf->addr2 > 0){
+			a = buf->addr2;
 			prev(&buf->addr2);
-			delete(buf->addr2, 1);
-			record(Uend, 0, 0);
+			a -= buf->addr2;
+			while(a-- > 0){
+				delete(buf->addr2, 1);
+				record(Uend, 0, 0);
+			}
 			buf->addr1 = buf->addr2;
 		}
 		break;
 	case Kdel:
 		if(buf->addr2 < len()){
-			delete(buf->addr2, 1);
-			record(Uend, 0, 0);
+			a = buf->addr2;
+			next(&a);
+			a -= buf->addr2;
+			while(a-- > 0){
+				delete(buf->addr2, 1);
+				record(Uend, 0, 0);
+			}
 		}
 		break;
 	case Kesc:
