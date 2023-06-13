@@ -925,7 +925,9 @@ dialogue(const char *prompt)
 			bar("");
 			return -1;
 		}else if(k == Kbs && dbuf.len > 0)
-			((char *)dbuf.data)[--dbuf.len] = 0; /* TODO: multibyte */
+			while(dbuf.len)
+				((char *)dbuf.data)[--dbuf.len] = 0;
+			/* TODO: single character backspace (handling multibyte properly) */
 		else{
 			s = ch;
 			while (*s)
