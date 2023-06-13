@@ -46,7 +46,7 @@ enum
 enum
 {
 	Kesc = 0x1b,
-	Kbs  = 0x7f,
+	Kbs  = 0x7f, /* assume backspace sends DEL */
 	Kdel = 0xE000,
 	Kleft,
 	Kright,
@@ -215,28 +215,31 @@ key(void)
 		int c;
 		int out;
 	} vt[] = {
-		{ '[', 'A',  -1,     Kup },
-		{ '[', 'B',  -1,   Kdown },
-		{ '[', 'C',  -1,  Kright },
-		{ '[', 'D',  -1,   Kleft },
-		{ '[', 'H',  -1,   Khome },
-		{ '[', 'F',  -1,    Kend },
-		{ '[', 'P',  -1,    Kdel },
-		{ '[', '4', 'h',    Kins },
-		{ '[', '1', '~',   Khome },
-		{ '[', '7', '~',   Khome },
-		{ '[', '4', '~',    Kend },
-		{ '[', '8', '~',    Kend },
-		{ '[', '3', '~',    Kdel },
-		{ '[', '5', '~',   Kpgup },
-		{ '[', '6', '~', Kpgdown },
-		{ '[', '2', '~',    Kins },
+		/* VT100 */
 		{ 'O', 'A',  -1,     Kup },
 		{ 'O', 'B',  -1,   Kdown },
 		{ 'O', 'C',  -1,  Kright },
 		{ 'O', 'D',  -1,   Kleft },
+		/* VT220 */
+		{ '[', 'A',  -1,     Kup },
+		{ '[', 'B',  -1,   Kdown },
+		{ '[', 'C',  -1,  Kright },
+		{ '[', 'D',  -1,   Kleft },
+		{ '[', '1', '~',   Khome },
+		{ '[', '2', '~',    Kins },
+		{ '[', '3', '~',    Kdel },
+		{ '[', '4', '~',    Kend },
+		{ '[', '5', '~',   Kpgup },
+		{ '[', '6', '~', Kpgdown },
+		/* xterm */
 		{ 'O', 'H',  -1,   Khome },
 		{ 'O', 'F',  -1,    Kend }
+		/* rxvt */
+		{ '[', '7', '~',   Khome },
+		{ '[', '8', '~',    Kend },
+		/* SCO ANSI */
+		{ '[', 'H',  -1,   Khome },
+		{ '[', 'F',  -1,    Kend },
 	};
 
 	memset(ch, 0, 5);
