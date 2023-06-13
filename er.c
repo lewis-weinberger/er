@@ -792,7 +792,8 @@ undo(size_t *a, size_t *b)
 				return;
 			}
 		}
-	}
+	} else /* no more changes */
+		buf->dirty = 0;
 }
 
 /* write contents of byte string to file */
@@ -1183,6 +1184,7 @@ motion(int k)
 			next(&buf->addr1);
 		if(mode != Select)
 			buf->addr2 = buf->addr1;
+		buf->lead = &buf->addr1;
 		break;
 	case '$':
 		if(mode == Input)
@@ -1192,13 +1194,16 @@ motion(int k)
 		eol(&buf->addr2);
 		if(mode != Select)
 			buf->addr1 = buf->addr2;
+		buf->lead = &buf->addr2;
 		break;
 	case Kpgup:
 	case CTRL('b'):
 		tmp = dim.ws_row - 1;
 		while(tmp-- > 0)
 			prevline(&buf->addr1);
-		buf->addr2 = buf->addr1;
+		if(mode != Select)
+			buf->addr2 = buf->addr1;
+		buf->lead = &buf->addr1;
 		checkline(0);
 		break;
 	case Kpgdown:
@@ -1206,7 +1211,9 @@ motion(int k)
 		tmp = dim.ws_row - 1;
 		while(tmp-- > 0)
 			nextline(&buf->addr2);
-		buf->addr1 = buf->addr2;
+		if(mode != Select)
+			buf->addr1 = buf->addr2;
+		buf->lead = &buf->addr2;
 		checkline(1);
 		break;
 	case CTRL('D'):
@@ -1246,7 +1253,9 @@ command(int k)
 	refresh = 1;
 	switch(k){
 	case Kesc:
-		buf->addr1 = buf->addr2;
+		fd = (buf->lead == &buf->addr1) ? 0 : 1;
+		buf->addr1 = buf->addr2 = *buf->lead;
+		checkline(fd);
 		mode = Command;
 		bar("COMMAND");
 		break;
@@ -1351,7 +1360,9 @@ command(int k)
 		break;
 	case 'y':
 		yank();
-		buf->addr1 = buf->addr2;
+		fd = (buf->lead == &buf->addr1) ? 0 : 1;
+		buf->addr1 = buf->addr2 = *buf->lead;
+		checkline(fd);
 		mode = Command;
 		break;
 	case '[':
@@ -1365,10 +1376,12 @@ command(int k)
 			insert(buf->addr2++, ((char *)ybuf.data)[i], 1);
 		record(Uend, 0, 0);
 		buf->addr1 = buf->addr2;
+		checkline(1);
 		bar("%ld bytes pasted", ybuf.len);
 		break;
 	case 'u':
 		undo(&buf->addr1, &buf->addr2);
+		checkline(buf->vstart > buf->addr1 ? 0 : 1);
 		break;
 	case '<':
 		indent(&buf->addr1, &buf->addr2, 0);
@@ -1377,12 +1390,17 @@ command(int k)
 		indent(&buf->addr1, &buf->addr2, 1);
 		break;
 	case ',':
-		buf->addr1 = buf->addr2 = buf->vstart = buf->vline = 0;
+		buf->addr1 = buf->vstart = buf->vline = 0;
+		if(mode != Select)
+			buf->addr2 = buf->addr1;
+		buf->lead = &buf->addr1;
 		break;
 	case 'G':
 		while(buf->addr2 < len() - 1)
 			next(&buf->addr2);
-		buf->addr1 = buf->addr2;
+		if(mode != Select)
+			buf->addr1 = buf->addr2;
+		buf->lead = &buf->addr2;
 		checkline(1);
 		break;
 	case CTRL('G'):
@@ -1506,6 +1524,7 @@ input(int k)
 		if(buf->addr2 > len() - 1)
 			buf->addr2--;
 		buf->addr1 = buf->addr2;
+		checkline(1);
 		mode = Command;
 		bar("COMMAND");
 		break;
