@@ -530,7 +530,7 @@ indent(size_t *a, size_t *b, int fwd)
 				if(len() > 0 && i < len() &&
 				   buf->c[bufaddr(i)] == (usetabs ? '\t' : ' ')){
 					delete(i, 1);
-					if(i <= *a)
+					if(i < *a)
 						(*a)--;
 					(*b)--;
 				}
