@@ -1241,6 +1241,17 @@ motion(int k)
 	return 1;
 }
 
+/* number of bytes encoding character at offset */
+size_t
+encwidth(size_t a)
+{
+	size_t n;
+
+	n = a;
+	next(&n);
+	return n - a;
+}
+
 /* interpret key for command mode */
 void
 command(int k)
@@ -1249,6 +1260,7 @@ command(int k)
 	ssize_t r;
 	int fd;
 	char *s;
+	char tmp[5];
 
 	if(motion(k) > 0)
 		return;
@@ -1343,7 +1355,8 @@ command(int k)
 				prev(&buf->addr2);
 				buf->addr1 = buf->addr2;
 			}
-			i = 1 + buf->addr2 - buf->addr1;
+			i = encwidth(buf->addr2);
+			i += (buf->addr2 - buf->addr1);
 			while(i-- > 0)
 				delete(buf->addr1, 1);
 			record(Uend, 0, 0);
@@ -1353,8 +1366,11 @@ command(int k)
 		break;
 	case 'r':
 		while((k = key()) < ' ' || k >= 0xE000);
-		delete(buf->addr2, 1);
-		s = ch;
+		memcpy(tmp, ch, 5);
+		i = encwidth(buf->addr2);
+		while(i-- > 0)
+			delete(buf->addr2, 1);
+		s = tmp;
 		while(*s)
 			insert(buf->addr2++, *s++, 1);
 		record(Uend, 0, 0);
@@ -1501,9 +1517,8 @@ input(int k)
 		break;
 	case Kbs:
 		if(buf->addr2 > 0){
-			a = buf->addr2;
 			prev(&buf->addr2);
-			a -= buf->addr2;
+			a = encwidth(buf->addr2);
 			while(a-- > 0){
 				delete(buf->addr2, 1);
 				record(Uend, 0, 0);
@@ -1513,9 +1528,7 @@ input(int k)
 		break;
 	case Kdel:
 		if(buf->addr2 < len()){
-			a = buf->addr2;
-			next(&a);
-			a -= buf->addr2;
+			a = encwidth(buf->addr2);
 			while(a-- > 0){
 				delete(buf->addr2, 1);
 				record(Uend, 0, 0);
