@@ -1365,7 +1365,10 @@ command(int k)
 		}
 		break;
 	case 'r':
-		while((k = key()) < ' ' || k >= 0xE000);
+		while((k = key()) < ' ' || k >= 0xE000){
+			if(k == Kesc)
+				return;
+		}
 		memcpy(tmp, ch, 5);
 		i = encwidth(buf->addr2);
 		while(i-- > 0)
