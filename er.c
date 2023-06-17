@@ -1435,9 +1435,10 @@ command(int k)
 		    (len() > 0) ? 100.0 * (buf->addr1 + 1) / len() : 0);
 		break;
 	case 't':
-		usetabs = 1 - usetabs;
-		tabspace = usetabs ? 1 : 4;
-		bar(usetabs ? "Using tabs (\\t)" : "Using spaces");
+		if(usetabs || tabspace == 8)
+			usetabs = 1 - usetabs;
+		tabspace = usetabs ? 1 : (tabspace + 1) % 9;
+		bar(usetabs ? "Indent %d tab (\\t)" : "Indent %d spaces", tabspace);
 		break;
 	case 'A':
 		autoindent = 1 - autoindent;
