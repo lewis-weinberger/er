@@ -901,7 +901,7 @@ bar(const char *fmt, ...){
 	n = vsnprintf(bbuf.data, dim.ws_col + 1, fmt, args);
 	va_end(args);
 	cursor(0, dim.ws_row - 1);
-	vpush(2, CSI("36m"), bbuf.data);
+	vpush(3, CSI("0m"), CSI("36m"), bbuf.data);
 	if(n > dim.ws_col){
 		cursor(dim.ws_col - 2, dim.ws_row - 1);
 		vpush(2, CSI("35m>"), CSI("0m"));
