@@ -1,4 +1,4 @@
-.TH ER 1 "FEBRUARY 2023" "er v0.6.0" "User Commands"
+.TH ER 1 "JULY 2023" "er v0.6.1" "User Commands"
 .SH NAME
 er \- terminal-based text editor
 .SH SYNOPSIS
@@ -17,7 +17,7 @@ You probably shouldn't use it.
 .PP
 .B er
 requires filename(s) to be specified on the command-line;
-If a path does not correspond to an existing file,
+if a path does not correspond to an existing file,
 it will be created. Only 32 files can be edited
 at a time.
 .B er
@@ -37,7 +37,7 @@ is a modal editor with 2.5 modes: COMMAND, INPUT and SELECT.
 In COMMAND mode, input is interpreted as commands to control
 the editor.
 .IP *
-In INPUT mode, character are inserted into
+In INPUT mode, characters are inserted into
 the text at the position of the cursor. In both COMMAND
 and INPUT modes, the cursor addresses a single character
 position in the text buffer.
@@ -125,7 +125,7 @@ Paste text on the next line.
 .IP u
 Undo last textual change.
 .IP <
-Outdent the line(s) in the current selection by up to 4 spaces.
+Dedent the line(s) in the current selection by up to 4 spaces.
 .IP >
 Indent the line(s) in the current selection by 4 spaces.
 .IP ,
@@ -135,7 +135,8 @@ Move cursor to last character in the buffer.
 .IP "CTRL+G"
 Print information about the current cursor position.
 .IP t
-Toggle using tabs (\\t) or 4 spaces for indentation.
+Toggle using tabs (\\t) or spaces for indentation.
+Allows incrementing indent between 2 and 8 spaces.
 .IP A
 Toggle automatic indentation.
 .IP s
